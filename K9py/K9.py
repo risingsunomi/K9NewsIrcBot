@@ -120,7 +120,7 @@ def newsfeed(cli):
 
 def connect_callback(cli):
     logging.basicConfig(level=logging.DEBUG)
-    helpers.identify(cli, "19374862KL<>io")
+    #helpers.identify(cli, "a-password")
     helpers.join(cli, channel)
     rsched.enter(5, 1, newsfeed, (cli,))
     rsched.run()
