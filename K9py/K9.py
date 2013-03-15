@@ -68,7 +68,7 @@ def news_stream(cli):
     for i in range(0, entsize):
         if sorted_entries[i]['summary_detail']['base'] == u'http://feeds.feedburner.com/newsyc150':
             print "{hacker news 100} %s - %s\n" % (sorted_entries[i]['title'],sorted_entries[i]['link'])
-            helpers.msg(cli, channel, "{HACKER NEWS 100} %s - %s\n" % (sorted_entries[i]['title'],tinyurl.create_one(sorted_entries[i]['link'])))
+            helpers.msg(cli, channel, "{hacker news 100} %s - %s\n" % (sorted_entries[i]['title'],tinyurl.create_one(sorted_entries[i]['link'])))
         else:
             for name in rss_sources:
                 if sorted_entries[i]['link'].find(name) != -1:
