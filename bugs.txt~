@@ -1,0 +1,47 @@
+Traceback (most recent call last):
+  File "./K9.py", line 130, in <module>
+    connection.next()
+  File "/usr/local/lib/python2.7/dist-packages/oyoyo/client.py", line 149, in connect
+    self.connect_cb(self)
+  File "./K9.py", line 113, in connect_callback
+    rsched.run()
+  File "/usr/lib/python2.7/sched.py", line 117, in run
+    action(*argument)
+  File "./K9.py", line 97, in news_stream
+    helpers.msg(cli, channel, "{%s} %s - %s\n" % (name,sorted_entries[i]['title'],tinyurl.create_one(sorted_entries[i]['link'])))
+  File "/usr/local/lib/python2.7/dist-packages/oyoyo/helpers.py", line 24, in msg
+    cli.send("PRIVMSG", user, ":%s" % line)
+  File "/usr/local/lib/python2.7/dist-packages/oyoyo/client.py", line 127, in send
+    self.socket.send(msg + bytes("\r\n", "ascii"))
+socket.error: [Errno 11] Resource temporarily unavailable
+
+Traceback (most recent call last):
+  File "./K9.py", line 125, in <module>
+    connection.next()
+  File "/usr/local/lib/python2.7/dist-packages/oyoyo/client.py", line 149, in connect
+    self.connect_cb(self)
+  File "./K9.py", line 113, in connect_callback
+    rsched.run()
+  File "/usr/lib/python2.7/sched.py", line 117, in run
+    action(*argument)
+  File "./K9.py", line 91, in news_stream
+    helpers.msg(cli, channel, "{hacker news 100} %s - %s\n" % (sorted_entries[i]['title'],tinyurl.create_one(sorted_entries[i]['link'])))
+  File "/usr/local/lib/python2.7/dist-packages/tinyurl.py", line 32, in create_one
+    ret = urllib.urlopen(API_CREATE, data=url_data).read().strip()
+  File "/usr/lib/python2.7/urllib.py", line 88, in urlopen
+    return opener.open(url, data)
+  File "/usr/lib/python2.7/urllib.py", line 209, in open
+    return getattr(self, name)(url, data)
+  File "/usr/lib/python2.7/urllib.py", line 344, in open_http
+    h.endheaders(data)
+  File "/usr/lib/python2.7/httplib.py", line 958, in endheaders
+    self._send_output(message_body)
+  File "/usr/lib/python2.7/httplib.py", line 818, in _send_output
+    self.send(msg)
+  File "/usr/lib/python2.7/httplib.py", line 780, in send
+    self.connect()
+  File "/usr/lib/python2.7/httplib.py", line 761, in connect
+    self.timeout, self.source_address)
+  File "/usr/lib/python2.7/socket.py", line 571, in create_connection
+    raise err
+IOError: [Errno socket error] [Errno 110] Connection timed out
