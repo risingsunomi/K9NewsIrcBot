@@ -261,10 +261,10 @@ class IRCClient:
 					if not self.entries:
 						self.rss_stream.news_stream(self)
 
-					worker = threading.Thread(target=self.rss_stream.print_news, args=(self,data,))
-					worker.start()
-					worker.join()	
-					#self.rss_stream.print_news(self,data)
+					#worker = threading.Thread(target=self.rss_stream.print_news, args=(self,data,))
+					#worker.start()
+					#worker.join()	
+					self.rss_stream.print_news(self,data)
 
 	# IRC message protocol methods
 	def send(self, msg):
