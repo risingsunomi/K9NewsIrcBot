@@ -15,6 +15,7 @@ from datetime import datetime
 from concurrent import futures
 from HTMLParser import HTMLParser
 from random import shuffle
+import threading
 
 class MLStripper(HTMLParser):
 	def __init__(self):
@@ -46,7 +47,9 @@ class RSSStream:
 					'http://www.economista.com.mx/ultimas-noticias/rss',
 					'http://rss.cnn.com/rss/cnn_topstories.rss',
 					'http://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
-					'http://rssfeeds.usatoday.com/usatoday-NewsTopStories']
+					'http://rssfeeds.usatoday.com/usatoday-NewsTopStories',
+					'http://www.washingtonpost.com/rss/world',
+					'http://hosted.ap.org/lineups/USHEADS-rss_2.0.xml?SITE=SCAND&SECTION=HOME']
 		
 		self.rss_sources = set(['aljazeera.net',
 							'bbc.com',
@@ -58,7 +61,9 @@ class RSSStream:
 							'hitb',
 							'cnn.com',
 							'nytimes.com',
-							'usatoday.com'])
+							'usatoday.com',
+							'washingtonpost.com',
+							'ap.org'])
 
 		self.rss_titles = {
 			'aljazeera.net': 'Al Jazeera',
@@ -72,102 +77,104 @@ class RSSStream:
 			'hitb': 'HITB',
 			'cnn.com': 'CNN',
 			'nytimes.com': 'New York Times',
-			'usatoday.com': 'USA Today'
+			'usatoday.com': 'USA Today',
+			'washingtonpost.com': 'Washington Post',
+			'ap.org': 'Associated Press'
 		}    
 		
-		self.entries = []
-		self.entsize = None
-		self.sorted_entries = None
-		self.rssitem = None
+		
 		
 	# starting news stream
-	def news_stream(self, client, data):
-		self.entries = []
+	def news_stream(self, client):
 		with futures.ThreadPoolExecutor(max_workers=13) as executor:
 			future_to_url = dict((executor.submit(feedparser.parse, url), url) for url in self.rss_urls)     
 			feeds = [future.result() for future in futures.as_completed(future_to_url)]
 			for feed in feeds:
-				self.entries.extend(feed["items"])   
+				client.entries.extend(feed["items"])   
 				try: 
-					self.sorted_entries = sorted(self.entries, key=lambda entry: entry["date"], reverse=True)
+					client.sorted_entries = sorted(client.entries, key=lambda entry: entry["date"], reverse=True)
 				except KeyError:
-					self.sorted_entries = sorted(self.entries, key=lambda entry: entry["updated"], reverse=True)
+					client.sorted_entries = sorted(client.entries, key=lambda entry: entry["updated"], reverse=True)
 
-			shuffle(self.sorted_entries)
+			shuffle(client.sorted_entries)
 			
 			print "========================================================================"
 			print "feed items loaded @ " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 			print "========================================================================"
 		
-		self.entsize = len(self.sorted_entries)
+		client.entsize = len(client.sorted_entries)
 		print "========================================================================"
-		print "Entry Size: " + str(self.entsize)
+		print "Entry Size: " + str(client.entsize)
 		print "========================================================================"
-		print " BEGIN STREAM =========================================================="
-		print "\n"
 
-		for i in range(0, self.entsize):
-			# get media:thumbnail, description, pubDate (change to mysql datetime format)
-			rssitem = {}
-			#print self.sorted_entries[i]
-			if self.sorted_entries[i]['summary_detail']['base'] == u'http://feeds.feedburner.com/newsyc150':
-				if 'published_parsed' in self.sorted_entries[i]:
-					dt = datetime.fromtimestamp(time.mktime(self.sorted_entries[i]['published_parsed']))
-					rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-				else:
-					rssitem['date_published'] = None
 
-				rssitem['news_source'] = "hacker news 100"
-				rssitem['title'] = self.sorted_entries[i]['title']
-				rssitem['url'] = self.sorted_entries[i]['link']
-				rssitem['description'] = strip_tags(self.sorted_entries[i]['description'])
-				rssitem['rss_raw'] = self.sorted_entries[i]
-				rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-				
+	def print_news(self, client, data):
+		# get media:thumbnail, description, pubDate (change to mysql datetime format)
+		rssitem = {}
+		i = 0
+		#print self.sorted_entries[i]
+		if client.sorted_entries[i]['summary_detail']['base'] == u'http://feeds.feedburner.com/newsyc150':
+			if 'published_parsed' in client.sorted_entries[i]:
+				dt = datetime.fromtimestamp(time.mktime(client.sorted_entries[i]['published_parsed']))
+				rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
 			else:
-				for name in self.rss_sources:
-					if self.sorted_entries[i]['link'].find(name) != -1:
-						if 'author_detail' in self.sorted_entries[i]:
-							rssitem['news_author'] = self.sorted_entries[i]['author_detail']
-						else:
-							rssitem['news_author'] = None
+				rssitem['date_published'] = None
 
-						if 'published_parsed' in self.sorted_entries[i]:
-							dt = datetime.fromtimestamp(time.mktime(self.sorted_entries[i]['published_parsed']))
-							rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-						else:
-							rssitem['date_published'] = None
+			rssitem['news_source'] = "hacker news 100"
+			rssitem['title'] = client.sorted_entries[i]['title']
+			rssitem['url'] = client.sorted_entries[i]['link']
+			rssitem['description'] = strip_tags(client.sorted_entries[i]['description'])
+			rssitem['rss_raw'] = client.sorted_entries[i]
+			rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-						if 'media_thumbnail' in self.sorted_entries[i]:
-							rssitem['media_thumbnail'] = str(self.sorted_entries[i]['media_thumbnail'])
-						else:
-							rssitem['media_thumbnail'] = None
-
-						rssitem['news_source'] = self.rss_titles[name]
-						rssitem['description'] = strip_tags(self.sorted_entries[i]['description'])
-						rssitem['title'] = self.sorted_entries[i]['title']
-						rssitem['url'] = self.sorted_entries[i]['link']
-						rssitem['rss_raw'] = self.sorted_entries[i]
-						rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-						# remove article already printed
-						print self.sorted_entries[i]
-
-						for c in client.channels:
-							client.say(" ", c)
-							client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
-							client.say(" ", c)
-							client.say("\035%s" % rssitem['description'], c)
-							client.say(" ", c)
-							client.say("\037%s" % rssitem['url'], c)
-							client.say(" ", c)
-							self.rssitem = rssitem
-							print rssitem
-							print "\n\n"
-
-						time.sleep(60)
+			client.sorted_entries.pop(i)
+			
+		else:
+			for name in self.rss_sources:
+				if client.sorted_entries[i]['link'].find(name) != -1:
+					if 'author_detail' in client.sorted_entries[i]:
+						rssitem['news_author'] = client.sorted_entries[i]['author_detail']
 					else:
-						continue
+						rssitem['news_author'] = None
+
+					if 'published_parsed' in client.sorted_entries[i]:
+						dt = datetime.fromtimestamp(time.mktime(client.sorted_entries[i]['published_parsed']))
+						rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+					else:
+						rssitem['date_published'] = None
+
+					if 'media_thumbnail' in client.sorted_entries[i]:
+						rssitem['media_thumbnail'] = str(client.sorted_entries[i]['media_thumbnail'])
+					else:
+						rssitem['media_thumbnail'] = None
+
+					rssitem['news_source'] = self.rss_titles[name]
+					rssitem['description'] = strip_tags(client.sorted_entries[i]['description'])
+					rssitem['title'] = client.sorted_entries[i]['title']
+					rssitem['url'] = client.sorted_entries[i]['link']
+					rssitem['rss_raw'] = client.sorted_entries[i]
+					rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+					# remove article already printed
+					print client.sorted_entries[i]
+
+					for c in client.channels:
+						client.say(" ", c)
+						client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
+						client.say(" ", c)
+						client.say("\035%s" % rssitem['description'], c)
+						client.say(" ", c)
+						client.say("\037%s" % rssitem['url'], c)
+						client.say(" ", c)
+						client.rssitem = rssitem
+						print rssitem
+						print "\n\n"
+
+					time.sleep(40)	
+				else:
+					continue
+
+			client.sorted_entries.pop(i)
 
 class IRCClient:
 	
@@ -194,6 +201,10 @@ class IRCClient:
 		self.send("USER %(nick)s %(nick)s %(nick)s :%(nick)s" % {'nick':self.nickname})
 		self.rss_stream = RSSStream()
 		self.ctx = {}
+		self.entries = []
+		self.entsize = None
+		self.sorted_entries = None
+		self.rssitem = None
 		self.rss_loaded = False
 		
 		while True:
@@ -234,8 +245,8 @@ class IRCClient:
 					target = self.ctx['sender'].split("!")[0]
 
 				# some basic commands
-				if self.ctx['msg'] == '!help':
-					self.say('available commands: !help, !about', target)
+				if self.ctx['msg'] == '!test':
+					self.say('fuck off', target)
 
 
 				# directed to the bot?
@@ -250,7 +261,13 @@ class IRCClient:
 					#self.say('alright :|', target)
 
 				if self.connected:
-					self.rss_stream.news_stream(self,data)
+					if not self.entries:
+						self.rss_stream.news_stream(self)
+
+					worker = threading.Thread(target=self.rss_stream.print_news, args=(self,data,))
+					worker.start()
+					worker.join()	
+					#self.rss_stream.print_news(self,data)
 
 	# IRC message protocol methods
 	def send(self, msg):
