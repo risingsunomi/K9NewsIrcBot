@@ -81,31 +81,32 @@ class RSSStream:
 
 		self.client = client
 
-	def run(self):
+	def get_feeds(self):
+		with futures.ThreadPoolExecutor(max_workers=13) as executor:
+			future_to_url = dict((executor.submit(feedparser.parse, url), url) for url in self.rss_urls)     
+			feeds = [future.result() for future in futures.as_completed(future_to_url)]
+			for feed in feeds:
+				self.client.entries.extend(feed["items"])   
+				try: 
+					self.client.sorted_entries = sorted(self.client.entries, key=lambda entry: entry["date"], reverse=True)
+				except KeyError:
+					self.client.sorted_entries = sorted(self.client.entries, key=lambda entry: entry["updated"], reverse=True)
+
+			shuffle(self.client.sorted_entries)
+			
+			print "========================================================================"
+			print "feed items loaded @ " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+			print "========================================================================"
+		
+		self.client.entsize = len(self.client.sorted_entries)
+		print "========================================================================"
+		print "Entry Size: " + str(self.client.entsize)
+		print "========================================================================"
+
+	def print_article(self):
 		# get media:thumbnail, description, pubDate (change to mysql datetime format)
 		rssitem = {}
 		i = 0
-		if not self.client.entries:
-			with futures.ThreadPoolExecutor(max_workers=13) as executor:
-				future_to_url = dict((executor.submit(feedparser.parse, url), url) for url in self.rss_urls)     
-				feeds = [future.result() for future in futures.as_completed(future_to_url)]
-				for feed in feeds:
-					self.client.entries.extend(feed["items"])   
-					try: 
-						self.client.sorted_entries = sorted(self.client.entries, key=lambda entry: entry["date"], reverse=True)
-					except KeyError:
-						self.client.sorted_entries = sorted(self.client.entries, key=lambda entry: entry["updated"], reverse=True)
-
-				shuffle(self.client.sorted_entries)
-				
-				print "========================================================================"
-				print "feed items loaded @ " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-				print "========================================================================"
-			
-			self.client.entsize = len(self.client.sorted_entries)
-			print "========================================================================"
-			print "Entry Size: " + str(self.client.entsize)
-			print "========================================================================"
 
 		#print self.sorted_entries[i]
 		if self.client.sorted_entries[i]['summary_detail']['base'] == u'http://feeds.feedburner.com/newsyc150':
@@ -126,6 +127,7 @@ class RSSStream:
 			
 		else:
 			for name in self.rss_sources:
+				print name
 				if self.client.sorted_entries[i]['link'].find(name) != -1:
 					if 'author_detail' in self.client.sorted_entries[i]:
 						rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']
@@ -165,7 +167,7 @@ class RSSStream:
 						print rssitem
 						print "\n\n"
 					
-					time.sleep(40)	
+					time.sleep(40)
 				else:
 					continue
 
@@ -220,6 +222,7 @@ class IRCClient:
 					if self.connected == False:
 						self.perform()
 						self.connected = True
+					continue
 
 				args = data.split(None, 3)
 				if len(args) != 4:
@@ -241,6 +244,7 @@ class IRCClient:
 				if self.ctx['target'] == self.nickname:
 					target = self.ctx['sender'].split("!")[0]
 
+
 				# some basic commands
 				if self.ctx['msg'] == '!test':
 					self.say('fuck off', target)
@@ -253,22 +257,20 @@ class IRCClient:
 					if self.ctx['target'] != self.nickname:
 						query = query[len(self.nickname):]
 						query = query.lstrip(':,;. ')
+
 					# do something intelligent here, like query a chatterbot
 					#print 'someone spoke to us: ', query
 					#self.say('alright :|', target)
 
-				if self.connected:
-					#if not self.stream_started:
-						#self.rss_stream.setDaemon(True)
-						#self.rss_stream.start()
-						#self.rss_stream.join()
-					self.rss_stream.run()
-						#self.stream_started = True
+				if self.connected and not self.stream_started:
+					self.rss_stream.get_feeds()
+					self.stream_started = True
+					self.rss_stream.print_article()
+					continue
 
-					#worker = threading.Thread(target=self.rss_stream.print_news, args=(self,data,))
-					#worker.start()
-					#worker.join()	
-					
+				if self.connected and self.stream_started:
+					self.rss_stream.print_article()
+					continue
 
 	# IRC message protocol methods
 	def send(self, msg):
@@ -308,6 +310,7 @@ class IRCClient:
 		for c in self.channels:
 			self.send("JOIN %s" % c)
 			print 'News Stream Started'
+
 
 if __name__ == '__main__':
 	IRCClient()
