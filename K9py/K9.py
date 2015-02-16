@@ -37,21 +37,27 @@ class RSSStream:
 		self.rss_urls = ['http://english.aljazeera.net/Services/Rss/?PostingId=2007731105943979989',
 					'http://www.theregister.co.uk/headlines.atom',
 					'http://feeds.bbci.co.uk/news/rss.xml',
-					'http://www.ft.com/rss/home/uk',
 					'http://rss.slashdot.org/Slashdot/slashdot',
 					'http://www.hackinthebox.org/backend.php',
 					'http://www.npr.org/rss/rss.php?id=1001',
 					'http://feeds.reuters.com/reuters/topNews',
 					'http://feeds.feedburner.com/newsyc150',
 					'http://rt.com/rss/news/',
-					'http://www.economista.com.mx/ultimas-noticias/rss',
 					'http://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
 					'http://rssfeeds.usatoday.com/usatoday-NewsTopStories',
 					'http://www.washingtonpost.com/rss/world',
-					'http://hosted.ap.org/lineups/USHEADS-rss_2.0.xml?SITE=SCAND&SECTION=HOME']
+					'http://hosted.ap.org/lineups/USHEADS-rss_2.0.xml?SITE=SCAND&SECTION=HOME',
+					'https://news.google.com/?output=rss',
+					'http://www.drudgereportfeed.com/',
+					'http://edition.presstv.ir/rss/',
+					'http://www.xinhuanet.com/english/rss/worldrss.xml',
+					'http://feeds.arstechnica.com/arstechnica/index',
+					'http://feeds.feedburner.com/TheHackersNews',
+					'http://english.chosun.com/site/data/rss/rss.xml']
 		
 		self.rss_sources = set(['aljazeera.net',
 							'bbc.com',
+							'bbc.co.uk',
 							'reuters.com',
 							'slashdot.org', 
 							'npr.org',
@@ -65,7 +71,9 @@ class RSSStream:
 
 		self.rss_titles = {
 			'aljazeera.net': 'Al Jazeera',
+			'aljazeera.com': 'Al Jazeera',
 			'bbc.com': 'BBC News',
+			'bbc.co.uk': 'BBC News',
 			'bbci.co.uk': 'BBC News',
 			'reuters.com': 'Reuters',
 			'slashdot.org': 'Slashdot',
@@ -104,11 +112,11 @@ class RSSStream:
 		print "========================================================================"
 
 	def print_article(self):
-		# get media:thumbnail, description, pubDate (change to mysql datetime format)
 		rssitem = {}
 		i = 0
+		if not self.client.sorted_entries:
+			self.get_feeds()
 
-		#print self.sorted_entries[i]
 		if self.client.sorted_entries[i]['summary_detail']['base'] == u'http://feeds.feedburner.com/newsyc150':
 			if 'published_parsed' in self.client.sorted_entries[i]:
 				dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
@@ -124,8 +132,14 @@ class RSSStream:
 			rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 			self.client.sorted_entries.pop(i)
+
+			self.client.entsize = len(self.client.sorted_entries)
+			print "========================================================================"
+			print "Entry Size: " + str(self.client.entsize)
+			print "========================================================================"
 			
 		else:
+			namefound = False
 			for name in self.rss_sources:
 				print name
 				if self.client.sorted_entries[i]['link'].find(name) != -1:
@@ -166,12 +180,59 @@ class RSSStream:
 						self.client.rssitem = rssitem
 						print rssitem
 						print "\n\n"
-					
+					namefound = True
 					time.sleep(40)
+					break
 				else:
+					namefound = False
 					continue
 
+			if namefound == False:
+				if 'author_detail' in self.client.sorted_entries[i]:
+					rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']
+				else:
+					rssitem['news_author'] = None
+
+				if 'published_parsed' in self.client.sorted_entries[i]:
+					dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
+					rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+				else:
+					rssitem['date_published'] = None
+
+				if 'media_thumbnail' in self.client.sorted_entries[i]:
+					rssitem['media_thumbnail'] = str(self.client.sorted_entries[i]['media_thumbnail'])
+				else:
+					rssitem['media_thumbnail'] = None
+
+				rssitem['news_source'] = "K9 World News"
+				rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+				rssitem['title'] = self.client.sorted_entries[i]['title']
+				rssitem['url'] = self.client.sorted_entries[i]['link']
+				rssitem['rss_raw'] = self.client.sorted_entries[i]
+				rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+				# remove article already printed
+				print rssitem
+				
+				for c in self.client.channels:
+					self.client.say(" ", c)
+					self.client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
+					self.client.say(" ", c)
+					self.client.say("\035%s" % rssitem['description'], c)
+					self.client.say(" ", c)
+					self.client.say("\037%s" % rssitem['url'], c)
+					self.client.say(" ", c)
+					self.client.rssitem = rssitem
+					print rssitem
+					print "\n\n"
+				
+				time.sleep(40)
+
 			self.client.sorted_entries.pop(i)
+			self.client.entsize = len(self.client.sorted_entries)
+			print "========================================================================"
+			print "Entry Size: " + str(self.client.entsize)
+			print "========================================================================"
 
 class IRCClient:
 	
@@ -222,6 +283,8 @@ class IRCClient:
 					if self.connected == False:
 						self.perform()
 						self.connected = True
+					if self.connected and self.stream_started:
+						self.rss_stream.print_article()
 					continue
 
 				args = data.split(None, 3)
