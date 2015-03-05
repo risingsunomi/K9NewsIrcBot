@@ -67,7 +67,9 @@ class RSSStream:
 							'nytimes.com',
 							'usatoday.com',
 							'washingtonpost.com',
-							'ap.org'])
+							'ap.org',
+							'arstechnica.com',
+							'chosun.com'])
 
 		self.rss_titles = {
 			'aljazeera.net': 'Al Jazeera',
@@ -84,7 +86,9 @@ class RSSStream:
 			'nytimes.com': 'New York Times',
 			'usatoday.com': 'USA Today',
 			'washingtonpost.com': 'Washington Post',
-			'ap.org': 'Associated Press'
+			'ap.org': 'Associated Press',
+			'arstechnica.com': 'Ars Technica',
+			'chosun.com': 'The Chosun Ilbo'
 		}
 
 		self.client = client
