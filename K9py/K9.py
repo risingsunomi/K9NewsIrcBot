@@ -61,13 +61,16 @@ class RSSStream:
 							'reuters.com',
 							'slashdot.org', 
 							'npr.org',
-							'theregister.co.uk', 
+							'theregister.co.uk',
+							'theregister.com',
 							'rt.com', 
 							'hitb',
 							'nytimes.com',
 							'usatoday.com',
 							'washingtonpost.com',
-							'ap.org'])
+							'ap.org',
+							'arstechnica.com',
+							'chosun.com'])
 
 		self.rss_titles = {
 			'aljazeera.net': 'Al Jazeera',
@@ -79,12 +82,15 @@ class RSSStream:
 			'slashdot.org': 'Slashdot',
 			'npr.org': 'National Public Radio',
 			'theregister.co.uk': 'The Register',
+			'theregister.com': 'The Register',
 			'rt.com': 'Russia Today',
 			'hitb': 'HITB',
 			'nytimes.com': 'New York Times',
 			'usatoday.com': 'USA Today',
 			'washingtonpost.com': 'Washington Post',
-			'ap.org': 'Associated Press'
+			'ap.org': 'Associated Press',
+			'arstechnica.com': 'Ars Technica',
+			'chosun.com': 'The Chosun Ilbo'
 		}
 
 		self.client = client
