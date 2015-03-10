@@ -28,8 +28,11 @@ class MLStripper(HTMLParser):
 
 def strip_tags(html):
 	s = MLStripper()
-	s.feed(html)
-	return s.get_data()
+	try:
+		s.feed(html)
+		return s.get_data()
+	except:
+		return html
 
 class RSSStream:
 	def __init__(self, client):
