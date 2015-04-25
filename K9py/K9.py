@@ -56,7 +56,7 @@ class RSSStream:
 					'https://news.google.com/?output=rss',
 					'http://www.drudgereportfeed.com/',
 					'http://edition.presstv.ir/rss/',
-					'http://www.xinhuanet.com/english/rss/worldrss.xml',
+					'http://www.scmp.com/rss/91/feed',
 					'http://feeds.arstechnica.com/arstechnica/index',
 					'http://feeds.feedburner.com/TheHackersNews',
 					'http://english.chosun.com/site/data/rss/rss.xml']
@@ -76,7 +76,8 @@ class RSSStream:
 							'washingtonpost.com',
 							'ap.org',
 							'arstechnica.com',
-							'chosun.com'])
+							'chosun.com',
+							'scmp.com'])
 
 		self.rss_titles = {
 			'aljazeera.net': 'Al Jazeera',
@@ -96,7 +97,8 @@ class RSSStream:
 			'washingtonpost.com': 'Washington Post',
 			'ap.org': 'Associated Press',
 			'arstechnica.com': 'Ars Technica',
-			'chosun.com': 'The Chosun Ilbo'
+			'chosun.com': 'The Chosun Ilbo',
+			'scmp.com': 'South China Morning Post',
 		}
 
 		self.client = client
@@ -167,10 +169,7 @@ class RSSStream:
 						rssitem['date_published'] = None
 
 					if 'media_thumbnail' in self.client.sorted_entries[i]:
-						if self.client.sorted_entries[i]['media_thumbnail'][1]['url']:
-							rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][1]
-						else:
-							rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]
+						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail']
 					else:
 						rssitem['media_thumbnail'] = None
 
@@ -229,10 +228,7 @@ class RSSStream:
 					rssitem['date_published'] = None
 
 				if 'media_thumbnail' in self.client.sorted_entries[i]:
-					if self.client.sorted_entries[i]['media_thumbnail'][1]['url']:
-						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][1]
-					else:
-						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]
+					rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail']
 				else:
 					rssitem['media_thumbnail'] = None
 
