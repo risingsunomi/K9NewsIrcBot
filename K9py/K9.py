@@ -167,7 +167,10 @@ class RSSStream:
 						rssitem['date_published'] = None
 
 					if 'media_thumbnail' in self.client.sorted_entries[i]:
-						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]['url']
+						if self.client.sorted_entries[i]['media_thumbnail'][1]['url']:
+							rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][1]
+						else:
+							rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]
 					else:
 						rssitem['media_thumbnail'] = None
 
@@ -226,7 +229,10 @@ class RSSStream:
 					rssitem['date_published'] = None
 
 				if 'media_thumbnail' in self.client.sorted_entries[i]:
-					rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]['url']
+					if self.client.sorted_entries[i]['media_thumbnail'][1]['url']:
+						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][1]
+					else:
+						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]
 				else:
 					rssitem['media_thumbnail'] = None
 
