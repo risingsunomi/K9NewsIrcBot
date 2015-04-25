@@ -15,6 +15,9 @@ from datetime import datetime
 from concurrent import futures
 from HTMLParser import HTMLParser
 from random import shuffle
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+
 import threading
 
 class MLStripper(HTMLParser):
@@ -175,8 +178,21 @@ class RSSStream:
 					rssitem['rss_raw'] = self.client.sorted_entries[i]
 					rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-					# remove article already printed
-					print rssitem
+					# save rss item
+					rsstmp = {
+						'news_source': rssitem['news_source'],
+						'description': rssitem['description'],
+						'title': rssitem['title'],
+						'url': rssitem['url'],
+						'scrape_date': rssitem['scrape_date'],
+						'news_author': rssitem['news_author'],
+						'date_published': rssitem['date_published'],
+						'media_thumbnail': rssitem['media_thumbnail']
+					}
+					
+					self.save_rss(rsstmp)
+
+					del rsstmp
 					
 					for c in self.client.channels:
 						self.client.say(" ", c)
@@ -199,7 +215,7 @@ class RSSStream:
 
 			if namefound == False:
 				if 'author_detail' in self.client.sorted_entries[i]:
-					rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']
+					rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
 				else:
 					rssitem['news_author'] = None
 
@@ -221,8 +237,21 @@ class RSSStream:
 				rssitem['rss_raw'] = self.client.sorted_entries[i]
 				rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-				# remove article already printed
-				print rssitem
+				# save rss item
+				rsstmp = {
+					'news_source': rssitem['news_source'],
+					'description': rssitem['description'],
+					'title': rssitem['title'],
+					'url': rssitem['url'],
+					'scrape_date': rssitem['scrape_date'],
+					'news_author': rssitem['news_author'],
+					'date_published': rssitem['date_published'],
+					'media_thumbnail': rssitem['media_thumbnail']
+				}
+
+				self.save_rss(rsstmp)
+
+				del rsstmp
 				
 				for c in self.client.channels:
 					self.client.say(" ", c)
@@ -244,6 +273,19 @@ class RSSStream:
 			print "Entry Size: " + str(self.client.entsize)
 			print "========================================================================"
 
+	def save_rss(self, rssdata):
+		mg_cnn = MongoClient()
+		mg_db = mg_cnn["qnews"]
+
+		if "rss_data" not in mg_db.collection_names():
+			mg_db.create_collection("rss_data")
+
+		if mg_db["rss_data"].find_one(rssdata):
+			mgtd = mg_db["rss_data"].find_one(rssdata)
+			mg_db["rss_data"].update({"_id": ObjectId(mgtd["_id"])}, {"$set": rssdata})
+		else:
+			mg_db["rss_data"].insert(rssdata)
+
 class IRCClient:
 	
 	# irc information
@@ -252,7 +294,7 @@ class IRCClient:
 	registered = False
 	nickname = 'WNews'
 	channels = ['#worldnews']
-	network = raw_input('IRC Network: ')
+	network = 'irc.rizon.net'
 
 	# mysql information
 	host = 'localhost'
