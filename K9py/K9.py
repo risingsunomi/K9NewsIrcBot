@@ -156,7 +156,7 @@ class RSSStream:
 				print name
 				if self.client.sorted_entries[i]['link'].find(name) != -1:
 					if 'author_detail' in self.client.sorted_entries[i]:
-						rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']
+						rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
 					else:
 						rssitem['news_author'] = None
 
@@ -167,7 +167,7 @@ class RSSStream:
 						rssitem['date_published'] = None
 
 					if 'media_thumbnail' in self.client.sorted_entries[i]:
-						rssitem['media_thumbnail'] = str(self.client.sorted_entries[i]['media_thumbnail'])
+						rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]['url']
 					else:
 						rssitem['media_thumbnail'] = None
 
@@ -226,7 +226,7 @@ class RSSStream:
 					rssitem['date_published'] = None
 
 				if 'media_thumbnail' in self.client.sorted_entries[i]:
-					rssitem['media_thumbnail'] = str(self.client.sorted_entries[i]['media_thumbnail'])
+					rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail'][0]['url']
 				else:
 					rssitem['media_thumbnail'] = None
 
