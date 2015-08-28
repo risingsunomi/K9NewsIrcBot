@@ -9,7 +9,7 @@
 # add in python twitter and make k-9news account
 # change: no oyoyo
 
-import time, threading, feedparser
+import time, threading, feedparser, tinyurl
 import socket, re, sys, os, getpass, time, codecs
 from datetime import datetime
 from concurrent import futures
@@ -59,7 +59,8 @@ class RSSStream:
 					'http://www.scmp.com/rss/91/feed',
 					'http://feeds.arstechnica.com/arstechnica/index',
 					'http://feeds.feedburner.com/TheHackersNews',
-					'http://english.chosun.com/site/data/rss/rss.xml']
+					'http://english.chosun.com/site/data/rss/rss.xml',
+					'http://vuxml.freebsd.org/freebsd/rss.xml']
 		
 		self.rss_sources = set(['aljazeera.net',
 							'bbc.com',
@@ -131,7 +132,8 @@ class RSSStream:
 		if not self.client.sorted_entries:
 			self.get_feeds()
 
-		if self.client.sorted_entries[i]['summary_detail']['base'] == u'http://feeds.feedburner.com/newsyc150':
+		summary_detail = self.client.sorted_entries[i].get('summary_detail', None)
+		if summary_detail is not None and summary_detail['base'] == u'http://feeds.feedburner.com/newsyc150':
 			if 'published_parsed' in self.client.sorted_entries[i]:
 				dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
 				rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -140,7 +142,7 @@ class RSSStream:
 
 			rssitem['news_source'] = "hacker news 100"
 			rssitem['title'] = self.client.sorted_entries[i]['title']
-			rssitem['url'] = self.client.sorted_entries[i]['link']
+			rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
 			rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
 			rssitem['rss_raw'] = self.client.sorted_entries[i]
 			rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -158,7 +160,10 @@ class RSSStream:
 				print name
 				if self.client.sorted_entries[i]['link'].find(name) != -1:
 					if 'author_detail' in self.client.sorted_entries[i]:
-						rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
+						try:
+							rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
+						except KeyError:
+							rssitem['news_author'] = None
 					else:
 						rssitem['news_author'] = None
 
@@ -174,9 +179,14 @@ class RSSStream:
 						rssitem['media_thumbnail'] = None
 
 					rssitem['news_source'] = self.rss_titles[name]
-					rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+					if self.client.sorted_entries[i]['description'] != None:
+						rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+						rssitem['description'] = rssitem['description'][:100] + '..' if len(rssitem['description']) > 100 else rssitem['description']
+					else:
+						rssitem['description'] = self.client.sorted_entries[i]['description']
+
 					rssitem['title'] = self.client.sorted_entries[i]['title']
-					rssitem['url'] = self.client.sorted_entries[i]['link']
+					rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
 					rssitem['rss_raw'] = self.client.sorted_entries[i]
 					rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -193,17 +203,18 @@ class RSSStream:
 					}
 					
 					self.save_rss(rsstmp)
-
+					print rsstmp
 					del rsstmp
 					
 					for c in self.client.channels:
-						self.client.say("\002[%s] %s \035%s" % (rssitem['news_source'], rssitem['title'], rssitem['description']), c)
+						self.client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
+						self.client.say("\035%s" % rssitem['description'], c)
 						self.client.say("\037%s" % rssitem['url'], c)
 						self.client.rssitem = rssitem
 						print rssitem
 						print "\n\n"
 					namefound = True
-					time.sleep(40)
+					time.sleep(60)
 					break
 				else:
 					namefound = False
@@ -227,7 +238,14 @@ class RSSStream:
 					rssitem['media_thumbnail'] = None
 
 				rssitem['news_source'] = "K9 World News"
-				rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+				
+				rss_description = self.client.sorted_entries[i].get('summary_detail', None)
+				if rss_description is not None:
+					rssitem['description'] = strip_tags(rss_description)
+					rssitem['description'] = rssitem['description'][:100] + '..' if len(rssitem['description']) > 100 else rssitem['description']
+				else:
+					rssitem['description'] = rss_description
+
 				rssitem['title'] = self.client.sorted_entries[i]['title']
 				rssitem['url'] = self.client.sorted_entries[i]['link']
 				rssitem['rss_raw'] = self.client.sorted_entries[i]
@@ -246,17 +264,18 @@ class RSSStream:
 				}
 
 				self.save_rss(rsstmp)
-
+				print rsstmp
 				del rsstmp
 				
 				for c in self.client.channels:
-					self.client.say("\002[%s] %s \035%s" % (rssitem['news_source'], rssitem['title'], rssitem['description']), c)
+					self.client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
+					self.client.say("\035%s" % rssitem['description'], c)
 					self.client.say("\037%s" % rssitem['url'], c)
 					self.client.rssitem = rssitem
 					print rssitem
 					print "\n\n"
 				
-				time.sleep(40)
+				time.sleep(60)
 
 			self.client.sorted_entries.pop(i)
 			self.client.entsize = len(self.client.sorted_entries)
@@ -277,15 +296,19 @@ class RSSStream:
 		else:
 			mg_db["rss_data"].insert(rssdata)
 
+	def wait_print(self):
+		print datetime.now()
+
 class IRCClient:
 	
 	# irc information
 	socket = None
 	connected = False
+	joined = False
 	registered = False
 	nickname = 'WNews'
 	channels = ['#worldnews']
-	network = 'irc.darenet.org'
+	network = 'eth.ca.us.darenet.org'
 
 	# mysql information
 	host = 'localhost'
@@ -317,11 +340,12 @@ class IRCClient:
 				data = str(data).strip()
 				if data == '':
 					continue
-				print "I<", data
+				#print "I<", data
 
 				# server ping/pong?
 				if data.find('PING') != -1:
 					n = data.split(':')[1]
+					print self.rss_stream.wait_print()
 					self.send('PONG :' + n)
 					if self.connected == False:
 						self.perform()
@@ -338,8 +362,15 @@ class IRCClient:
 				self.ctx['target'] = args[2]
 				self.ctx['msg']    = args[3][1:]
 
+				# check to start rss
+				if self.ctx['type'] == '366':
+					self.joined = True
+
 				# register
-				#print self.ctx['type']
+				print self.ctx['type']
+				print self.ctx['sender']
+				print self.ctx['target']
+				print self.ctx['msg']
 				#if self.ctx['type'] == '332' and self.registered is False:
 					#print 'PRIVMSG NickServ@network.net :IDENTIFY %s' % self.register_pass
 					#self.send('PRIVMSG NickServ@network.net :IDENTIFY %s' % self.register_pass)
@@ -368,13 +399,13 @@ class IRCClient:
 					#print 'someone spoke to us: ', query
 					#self.say('alright :|', target)
 
-				if self.connected and not self.stream_started:
+				if self.connected and self.joined and not self.stream_started:
 					self.rss_stream.get_feeds()
 					self.stream_started = True
 					self.rss_stream.print_article()
 					continue
 
-				if self.connected and self.stream_started:
+				if self.connected and self.joined and self.stream_started:
 					self.rss_stream.print_article()
 					continue
 
