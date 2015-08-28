@@ -181,7 +181,6 @@ class RSSStream:
 					rssitem['news_source'] = self.rss_titles[name]
 					if self.client.sorted_entries[i]['description'] != None:
 						rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
-						rssitem['description'] = rssitem['description'][:100] + '..' if len(rssitem['description']) > 100 else rssitem['description']
 					else:
 						rssitem['description'] = self.client.sorted_entries[i]['description']
 
@@ -207,9 +206,7 @@ class RSSStream:
 					del rsstmp
 					
 					for c in self.client.channels:
-						self.client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
-						self.client.say("\035%s" % rssitem['description'], c)
-						self.client.say("\037%s" % rssitem['url'], c)
+						self.client.say("\002[%s] %s \037%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
 						self.client.rssitem = rssitem
 						print rssitem
 						print "\n\n"
@@ -268,9 +265,7 @@ class RSSStream:
 				del rsstmp
 				
 				for c in self.client.channels:
-					self.client.say("\002[%s] %s" % (rssitem['news_source'], rssitem['title']), c)
-					self.client.say("\035%s" % rssitem['description'], c)
-					self.client.say("\037%s" % rssitem['url'], c)
+					self.client.say("\002[%s] %s \037%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
 					self.client.rssitem = rssitem
 					print rssitem
 					print "\n\n"
