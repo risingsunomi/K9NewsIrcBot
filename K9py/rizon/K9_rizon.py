@@ -206,7 +206,7 @@ class RSSStream:
 					del rsstmp
 					
 					for c in self.client.channels:
-						self.client.say("\002[%s] %s \037%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
+						self.client.say("\002[%s]\002 %s \037\00307%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
 						self.client.rssitem = rssitem
 						print rssitem
 						print "\n\n"
@@ -265,7 +265,7 @@ class RSSStream:
 				del rsstmp
 				
 				for c in self.client.channels:
-					self.client.say("\002[%s] %s \037%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
+					self.client.say("\002[%s]\002 %s \037\00307%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
 					self.client.rssitem = rssitem
 					print rssitem
 					print "\n\n"
