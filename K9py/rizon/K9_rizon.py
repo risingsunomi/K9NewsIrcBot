@@ -254,7 +254,7 @@ class RSSStream:
 						rssitem['description'] = rss_description
 
 					rssitem['title'] = self.client.sorted_entries[i]['title']
-					rssitem['url'] = self.client.sorted_entries[i]['link']
+					rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
 					rssitem['rss_raw'] = self.client.sorted_entries[i]
 					rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
