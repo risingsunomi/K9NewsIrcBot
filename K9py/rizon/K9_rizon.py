@@ -129,41 +129,107 @@ class RSSStream:
 	def print_article(self):
 		rssitem = {}
 		i = 0
-		if not self.client.sorted_entries:
-			self.get_feeds()
 
-		summary_detail = self.client.sorted_entries[i].get('summary_detail', None)
-		if summary_detail is not None and summary_detail['base'] == u'http://feeds.feedburner.com/newsyc150':
-			if 'published_parsed' in self.client.sorted_entries[i]:
-				dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
-				rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-			else:
-				rssitem['date_published'] = None
-
-			rssitem['news_source'] = "hacker news 100"
-			rssitem['title'] = self.client.sorted_entries[i]['title']
-			rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
-			rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
-			rssitem['rss_raw'] = self.client.sorted_entries[i]
-			rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+		if strip_tags(self.client.sorted_entries[i]['description']).find("<!DOCTYPE html>") != -1:
+			print "\n!!!!! html found in description for %s skipping... %s\n" %(rssitem['title'], self.client.sorted_entries[i]['link'])
 
 			self.client.sorted_entries.pop(i)
-
 			self.client.entsize = len(self.client.sorted_entries)
 			print "========================================================================"
 			print "Entry Size: " + str(self.client.entsize)
 			print "========================================================================"
-			
 		else:
-			namefound = False
-			for name in self.rss_sources:
-				print name
-				if self.client.sorted_entries[i]['link'].find(name) != -1:
-					if 'author_detail' in self.client.sorted_entries[i]:
-						try:
-							rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
-						except KeyError:
+			if not self.client.sorted_entries:
+				self.get_feeds()
+
+			summary_detail = self.client.sorted_entries[i].get('summary_detail', None)
+			if summary_detail is not None and summary_detail['base'] == u'http://feeds.feedburner.com/newsyc150':
+				if 'published_parsed' in self.client.sorted_entries[i]:
+					dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
+					rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+				else:
+					rssitem['date_published'] = None
+
+				rssitem['news_source'] = "hacker news 100"
+				rssitem['title'] = self.client.sorted_entries[i]['title']
+				rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
+				rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+				rssitem['rss_raw'] = self.client.sorted_entries[i]
+				rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+				self.client.sorted_entries.pop(i)
+
+				self.client.entsize = len(self.client.sorted_entries)
+				print "========================================================================"
+				print "Entry Size: " + str(self.client.entsize)
+				print "========================================================================"
+				
+			else:
+				namefound = False
+				for name in self.rss_sources:
+					print name
+					if self.client.sorted_entries[i]['link'].find(name) != -1:
+						if 'author_detail' in self.client.sorted_entries[i]:
+							try:
+								rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
+							except KeyError:
+								rssitem['news_author'] = None
+						else:
 							rssitem['news_author'] = None
+
+						if 'published_parsed' in self.client.sorted_entries[i]:
+							dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
+							rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+						else:
+							rssitem['date_published'] = None
+
+						if 'media_thumbnail' in self.client.sorted_entries[i]:
+							rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail']
+						else:
+							rssitem['media_thumbnail'] = None
+
+						rssitem['news_source'] = self.rss_titles[name]
+						if self.client.sorted_entries[i]['description'] != None:
+							rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+						else:
+							rssitem['description'] = self.client.sorted_entries[i]['description']
+
+						rssitem['title'] = self.client.sorted_entries[i]['title']
+						rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
+						rssitem['rss_raw'] = self.client.sorted_entries[i]
+						rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+						# save rss item
+						# rsstmp = {
+						# 	'news_source': rssitem['news_source'],
+						# 	'description': rssitem['description'],
+						# 	'title': rssitem['title'],
+						# 	'url': rssitem['url'],
+						# 	'scrape_date': rssitem['scrape_date'],
+						# 	'news_author': rssitem['news_author'],
+						# 	'date_published': rssitem['date_published'],
+						# 	'media_thumbnail': rssitem['media_thumbnail']
+						# }
+						
+						# self.save_rss(rsstmp)
+						# print rsstmp
+						# del rsstmp
+						
+						for c in self.client.channels:
+							self.client.say("\002[%s]\002 %s \037\00307%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
+							self.client.rssitem = rssitem
+							print rssitem
+							print "\n\n"
+						namefound = True
+						time.sleep(60)
+						break
+					else:
+						namefound = False
+						continue
+
+				if namefound == False:
+					if 'author_detail' in self.client.sorted_entries[i]:
+						rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
 					else:
 						rssitem['news_author'] = None
 
@@ -178,105 +244,49 @@ class RSSStream:
 					else:
 						rssitem['media_thumbnail'] = None
 
-					rssitem['news_source'] = self.rss_titles[name]
-					if self.client.sorted_entries[i]['description'] != None:
-						rssitem['description'] = strip_tags(self.client.sorted_entries[i]['description'])
+					rssitem['news_source'] = "K9 World News"
+					
+					rss_description = self.client.sorted_entries[i].get('summary_detail', None)
+					if rss_description is not None:
+						rssitem['description'] = strip_tags(rss_description)
+						rssitem['description'] = rssitem['description'][:100] + '..' if len(rssitem['description']) > 100 else rssitem['description']
 					else:
-						rssitem['description'] = self.client.sorted_entries[i]['description']
+						rssitem['description'] = rss_description
 
 					rssitem['title'] = self.client.sorted_entries[i]['title']
-					rssitem['url'] = tinyurl.create_one(self.client.sorted_entries[i]['link'])
+					rssitem['url'] = self.client.sorted_entries[i]['link']
 					rssitem['rss_raw'] = self.client.sorted_entries[i]
 					rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 					# save rss item
-					rsstmp = {
-						'news_source': rssitem['news_source'],
-						'description': rssitem['description'],
-						'title': rssitem['title'],
-						'url': rssitem['url'],
-						'scrape_date': rssitem['scrape_date'],
-						'news_author': rssitem['news_author'],
-						'date_published': rssitem['date_published'],
-						'media_thumbnail': rssitem['media_thumbnail']
-					}
-					
-					self.save_rss(rsstmp)
-					print rsstmp
-					del rsstmp
+					# rsstmp = {
+					# 	'news_source': rssitem['news_source'],
+					# 	'description': rssitem['description'],
+					# 	'title': rssitem['title'],
+					# 	'url': rssitem['url'],
+					# 	'scrape_date': rssitem['scrape_date'],
+					# 	'news_author': rssitem['news_author'],
+					# 	'date_published': rssitem['date_published'],
+					# 	'media_thumbnail': rssitem['media_thumbnail']
+					# }
+
+					# self.save_rss(rsstmp)
+					# print rsstmp
+					# del rsstmp
 					
 					for c in self.client.channels:
 						self.client.say("\002[%s]\002 %s \037\00307%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
 						self.client.rssitem = rssitem
 						print rssitem
 						print "\n\n"
-					namefound = True
+					
 					time.sleep(60)
-					break
-				else:
-					namefound = False
-					continue
 
-			if namefound == False:
-				if 'author_detail' in self.client.sorted_entries[i]:
-					rssitem['news_author'] = self.client.sorted_entries[i]['author_detail']['name']
-				else:
-					rssitem['news_author'] = None
-
-				if 'published_parsed' in self.client.sorted_entries[i]:
-					dt = datetime.fromtimestamp(time.mktime(self.client.sorted_entries[i]['published_parsed']))
-					rssitem['date_published'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-				else:
-					rssitem['date_published'] = None
-
-				if 'media_thumbnail' in self.client.sorted_entries[i]:
-					rssitem['media_thumbnail'] = self.client.sorted_entries[i]['media_thumbnail']
-				else:
-					rssitem['media_thumbnail'] = None
-
-				rssitem['news_source'] = "K9 World News"
-				
-				rss_description = self.client.sorted_entries[i].get('summary_detail', None)
-				if rss_description is not None:
-					rssitem['description'] = strip_tags(rss_description)
-					rssitem['description'] = rssitem['description'][:100] + '..' if len(rssitem['description']) > 100 else rssitem['description']
-				else:
-					rssitem['description'] = rss_description
-
-				rssitem['title'] = self.client.sorted_entries[i]['title']
-				rssitem['url'] = self.client.sorted_entries[i]['link']
-				rssitem['rss_raw'] = self.client.sorted_entries[i]
-				rssitem['scrape_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-				# save rss item
-				rsstmp = {
-					'news_source': rssitem['news_source'],
-					'description': rssitem['description'],
-					'title': rssitem['title'],
-					'url': rssitem['url'],
-					'scrape_date': rssitem['scrape_date'],
-					'news_author': rssitem['news_author'],
-					'date_published': rssitem['date_published'],
-					'media_thumbnail': rssitem['media_thumbnail']
-				}
-
-				self.save_rss(rsstmp)
-				print rsstmp
-				del rsstmp
-				
-				for c in self.client.channels:
-					self.client.say("\002[%s]\002 %s \037\00307%s" % (rssitem['news_source'], rssitem['title'], rssitem['url']), c)
-					self.client.rssitem = rssitem
-					print rssitem
-					print "\n\n"
-				
-				time.sleep(60)
-
-			self.client.sorted_entries.pop(i)
-			self.client.entsize = len(self.client.sorted_entries)
-			print "========================================================================"
-			print "Entry Size: " + str(self.client.entsize)
-			print "========================================================================"
+				self.client.sorted_entries.pop(i)
+				self.client.entsize = len(self.client.sorted_entries)
+				print "========================================================================"
+				print "Entry Size: " + str(self.client.entsize)
+				print "========================================================================"
 
 	def save_rss(self, rssdata):
 		mg_cnn = MongoClient()
